@@ -7,44 +7,41 @@
 #include <string>
 #include <iostream>
 
-using namespace glm;
-using namespace std;
-
-int toint(string input)
+int toint(std::string input)
 {
     int ret;
-    istringstream ss(input);
+    std::istringstream ss(input);
     ss >> ret;
     return ret;
 }
 template <typename T>
-string tostring(T in)
+std::string tostring(T in)
 {
-    stringstream ss;
+    std::stringstream ss;
     ss << in;
-    string ret;
+    std::string ret;
     ss >> ret;
     return ret;
 }
-float tofloat(string input)
+float tofloat(std::string input)
 {
     float ret;
-    istringstream ss(input);
+    std::istringstream ss(input);
     ss >> ret;
     return ret;
 }
-string print_vec3(vec3 in)
+std::string print_vec3(glm::dvec3 in)
 {
-    stringstream ss;
+    std::stringstream ss;
     ss << '(' << in.x << ',' << in.y << ',' << in.z << ')';
-    string ret;
+    std::string ret;
     ss >> ret;
     return ret;
 }
-string print_mat3x4(imat3x4 in)
+std::string print_mat3x4(glm::imat3x4 in)
 {
-    stringstream ss;
-    string ret;
+    std::stringstream ss;
+    std::string ret;
     ss << '(';
     for (int x = 0; x < 3; ++x)
     {
@@ -54,10 +51,10 @@ string print_mat3x4(imat3x4 in)
     ss >> ret;
     return ret;
 }
-string print_mat3x3(mat3x3 in)
+std::string print_mat3x3(glm::dmat3x3 in)
 {
-    stringstream ss;
-    string ret;
+    std::stringstream ss;
+    std::string ret;
     ss << '(';
     for (int x = 0; x < 3; ++x)
     {
@@ -79,21 +76,22 @@ inline const T &min_(const T &__a, const T &__b)
     return __a < __b ? __a : __b;
 }
 template <typename T>
-inline T max3(T a, T b, T c)
+inline const T &max3(const T &a, const T &b, const T &c)
 {
     return max_(max_(a, b), c);
 }
 template <typename T>
-inline T min3(T a, T b, T c)
+inline const T &min3(const T &a, const T &b, const T &c)
 {
     return min_(min_(a, b), c);
 }
 template <typename T>
-inline T between(T xmin, T xmax, T x)
+inline const T &between(const T &xmin, const T &xmax, const T &x)
 {
     return min_(max_(xmin, x), xmax);
 }
-inline uint32_t toRGB(vec3 a)
+// TODO hdr to ldr
+inline uint32_t toRGB(glm::vec3 a)
 {
     int R = between(0, 255, int(a.x * 255.0));
     int G = between(0, 255, int(a.y * 255.0));

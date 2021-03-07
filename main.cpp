@@ -27,20 +27,20 @@ int main()
 
     Model box("scenes/cornellbox/cornellbox.obj");
     Obj obj0(box);
-    renderer.set_camera(vec3(0, 0, 2.5), vec3(0, 0, 0), vec3(0, 1, 0), 60);
+    renderer.set_camera(glm::dvec3(0, 0, 2.5), glm::dvec3(0, 0, 0), glm::dvec3(0, 1, 0), 60);
 
     // Model room("scenes/diningroom/diningroom.obj");
     // Obj obj0(room);
-    // renderer.set_camera(vec3(0, 12.72,31.85), vec3(0, 12.546, 30.865), vec3(0, 0.985, -0.174), 45);
+    // renderer.set_camera(glm::dvec3(0, 12.72,31.85), glm::dvec3(0, 12.546, 30.865), glm::dvec3(0, 0.985, -0.174), 45);
 
     // Model car("scenes/car/car.obj");
     // Obj obj0(car);
-    // renderer.set_camera(vec3(0, 0, 2.5), vec3(0, 0, 0), vec3(0, 1, 0), 60);
+    // renderer.set_camera(glm::dvec3(0, 0, 2.5), glm::dvec3(0, 0, 0), glm::dvec3(0, 1, 0), 60);
 
     renderer.add_obj(obj0);
-    obj0.set_pose(mat4x4(1.0f), 1.0f);
+    obj0.set_pose(glm::mat4x4(1.0), 1.0);
 
-    renderer.set_background(vec3(0, 0, 0));
+    renderer.set_background(glm::dvec3(0, 0, 0));
     renderer.SAMPLES = 100000000;
 
     // while(1){}

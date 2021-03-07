@@ -5,21 +5,20 @@
 #include <map>
 #include <regex>
 #include <glm.hpp>
+
 #include "bmp.h"
-
 #include "hdr.h"
-
 #include "tools.h"
 
-// TODO: load and store jpg file
 class Picture
 {
 public:
     bool empty_ = true;
-    string filename_;
+    std::string filename_;
     int w, h;
-    vector<vec3> data_;
-    void load(string filename)
+    std::vector<glm::dvec3> data_;
+    Picture() {}
+    void load(std::string filename)
     {
         filename_ = filename;
         int i = filename.size() - 3;
@@ -28,7 +27,7 @@ public:
         else if (filename.substr(i, 3) == "hdr")
             load_hdr(filename);
     }
-    void load_bmp(string filename)
+    void load_bmp(std::string filename)
     {
         Bitmap bmp(filename.c_str());
         if (bmp.GetBits() != NULL)
@@ -37,30 +36,29 @@ public:
             h = bmp.GetH();
             for (int i = 0; i < w * h; ++i)
             {
-                vec3 color = bmp.GetColor(i);
+                glm::dvec3 color = bmp.GetColor(i);
                 data_.push_back(color);
-                // cout << print_vec3(color) << endl;
             }
             empty_ = false;
         }
     }
-    void load_hdr(string filename)
+    void load_hdr(std::string filename)
     {
         HDRLoader hdr(filename.c_str());
         if (hdr.success)
         {
-            cout << filename << endl;
+            std::cout << filename << std::endl;
             w = hdr.color.width;
             h = hdr.color.height;
             for (int i = 0; i < w * h; ++i)
             {
-                vec3 color = hdr.GetColor(i);
+                glm::dvec3 color = hdr.GetColor(i);
                 data_.push_back(color);
             }
             empty_ = false;
         }
     }
-    inline vec3 Sample2D(vec2 uv)
+    inline glm::dvec3 Sample2D(glm::dvec2 uv)
     {
         int x1 = uv.x * w;
         int y1 = uv.y * h;
@@ -70,53 +68,52 @@ public:
     }
 };
 
-// TODO: default value
 struct Material
 {
-    vec3 Kd = vec3(1, 1, 1); // diffuse, 反射光线系数，0 表示吸收所有光线.
-    vec3 Ks = vec3(0, 0, 0); // specular, 高光反射系数.
-    vec3 Kr = vec3(0, 0, 0); // 折射透明度, 0 表示不透明.
-    vec3 Le = vec3(0, 0, 0); // 自发光.
-    float kd = 1;            // diffuse fraction, Monte Carlo
-    float ks = 0;            // specular fraction, Monte Carlo
-    float kr = 0;            // reflect fraction, Monte Carlo
-    float Nr = 1;            // 物质折射率..
-    float Ns = 1;            // Phong 高光反射参数.
-    Picture Map_Kd;          // 纹理贴图.
+    glm::dvec3 Kd = glm::dvec3(1, 1, 1); // diffuse, 反射光线系数，0 表示吸收所有光线.
+    glm::dvec3 Ks = glm::dvec3(0, 0, 0); // specular, 高光反射系数.
+    glm::dvec3 Kr = glm::dvec3(0, 0, 0); // 折射透明度, 0 表示不透明.
+    glm::dvec3 Le = glm::dvec3(0, 0, 0); // 自发光.
+    double kd = 1;                       // diffuse fraction, Monte Carlo
+    double ks = 0;                       // specular fraction, Monte Carlo
+    double kr = 0;                       // reflect fraction, Monte Carlo
+    double Nr = 1;                       // 物质折射率..
+    double Ns = 1;                       // Phong 高光反射参数.
+    Picture Map_Kd;                      // 纹理贴图.
 };
 
 class Model
 {
 public:
-    vector<vec3> vertex_;
-    vector<vec3> norm_;
-    vector<vec2> uv_coord_;
-    vector<Material> material_; // material_[0] is default, no matter .mtl file exists or not
-    vector<imat3x4> face_;      // 3 line of {vertex_idx, norm_idx, uv_coord_idx, material_idx}
-                                // idx start from 0
+    std::vector<glm::dvec3> vertex_;
+    std::vector<glm::dvec3> norm_;
+    std::vector<glm::dvec2> uv_coord_;
+    std::vector<Material> material_; // material_[0] is default, no matter .mtl file exists or not
+    std::vector<glm::imat3x4> face_; // 3 line of {vertex_idx, norm_idx, uv_coord_idx, material_idx}
+                                     // idx start from 0
 
-    map<string, int> material_name; // find material idx by name
-    string dir_path;                // 根目录..
+    std::map<std::string, int> material_name; // find material idx by name
+    std::string dir_path;                     // 根目录..
 
     ~Model() {}
 
-    Model(string filename)
+    Model(std::string filename)
     {
-        smatch result;
+        std::smatch result;
         // get the path of obj file
-        if (regex_search(filename, result, regex("(.*/)[^/]+")) && result.size() == 2)
+        if (regex_search(filename, result, std::regex("(.*/)[^/]+")) && result.size() == 2)
             dir_path = result[1];
         else
             dir_path = "";
-        ifstream fs;
+        std::ifstream fs;
         fs.open(filename);
         if (!fs.is_open())
         {
-            cout << "[error] open " << filename << " failed!\n";
+            std::cout << "[error] open " << filename << " failed!\n";
             return;
         }
-        string str((istreambuf_iterator<char>(fs)), istreambuf_iterator<char>());
-        vector<string> lines;
+        std::string str((std::istreambuf_iterator<char>(fs)), std::istreambuf_iterator<char>());
+        std::vector<std::string> lines;
         int start = 0;
         for (int i = 0; i < str.size(); ++i)
         {
@@ -130,16 +127,16 @@ public:
         // the first material is always the default material;
         material_.push_back(Material());
 
-        vector<string> v_;
-        vector<string> vn_;
-        vector<string> vt_;
-        vector<string> f_;
+        std::vector<std::string> v_;
+        std::vector<std::string> vn_;
+        std::vector<std::string> vt_;
+        std::vector<std::string> f_;
         for (auto line : lines)
         {
             if (line[0] == 'm') // mtllib
             {
-                smatch res;
-                if (regex_search(line, res, regex("mtllib\\s+(\\S+)")))
+                std::smatch res;
+                if (regex_search(line, res, std::regex("mtllib\\s+(\\S+)")))
                     load_material(res[1]);
             }
             else if (line[0] == 'v')
@@ -168,10 +165,9 @@ public:
                 for (auto line : v_)
                 {
                     char trash;
-                    vec3 temp;
-                    istringstream ss(line);
+                    glm::dvec3 temp;
+                    std::istringstream ss(line);
                     ss >> trash >> temp[0] >> temp[1] >> temp[2];
-                    // cout << "v  " << print_vec3(temp) << endl;
                     vertex_.push_back(temp);
                 }
             }
@@ -181,10 +177,9 @@ public:
                 {
 
                     char trash;
-                    vec3 temp;
-                    istringstream ss(line);
+                    glm::dvec3 temp;
+                    std::istringstream ss(line);
                     ss >> trash >> trash >> temp[0] >> temp[1] >> temp[2];
-                    // cout << "vn " << print_vec3(temp) << endl;
                     norm_.push_back(temp);
                 }
             }
@@ -193,10 +188,9 @@ public:
                 for (auto line : vt_)
                 {
                     char trash;
-                    vec2 temp;
-                    istringstream ss(line);
+                    glm::dvec2 temp;
+                    std::istringstream ss(line);
                     ss >> trash >> trash >> temp[0] >> temp[1];
-                    // cout << "vt " << temp[0] << ' ' << temp[1] << endl;
                     uv_coord_.push_back(temp);
                 }
             }
@@ -207,15 +201,15 @@ public:
                 {
                     if (line[0] == 'u')
                     {
-                        smatch res;
-                        if (regex_search(line, res, regex("usemtl\\s+(\\S+)")))
-                            curr_material_id = material_name[string(res[1])];
+                        std::smatch res;
+                        if (regex_search(line, res, std::regex("usemtl\\s+(\\S+)")))
+                            curr_material_id = material_name[std::string(res[1])];
                     }
                     else
                     {
                         char trash;
-                        imat3x4 face;
-                        istringstream ss(line);
+                        glm::imat3x4 face;
+                        std::istringstream ss(line);
                         ss >> trash;
                         for (int i = 0; i < 3; ++i)
                         {
@@ -225,62 +219,61 @@ public:
                             face[i][2]--;
                             face[i][3] = curr_material_id;
                         }
-                        // cout << "face:\n" << print_mat3x4(face) << endl;
                         face_.push_back(face);
                     }
                 }
             }
         }
-        cout << "read done" << endl;
+        std::cout << "read " << filename << std::endl;
     }
 
-    inline void load_material(string filename)
+    inline void load_material(std::string filename)
     {
-        ifstream fs;
+        std::ifstream fs;
         fs.open(dir_path + filename);
         if (!fs.is_open())
         {
-            cout << "[error] open " << filename << " failed!\n";
+            std::cout << "[error] open " << filename << " failed!\n";
             return;
         }
-        string line;
-        smatch result;
+        std::string line;
+        std::smatch result;
         // read .mtl file
         while (getline(fs, line))
         {
-            if (regex_search(line, regex("\\s*#")) || regex_match(line, regex("\\s*")))
+            if (regex_search(line, std::regex("\\s*#")) || regex_match(line, std::regex("\\s*")))
                 continue;
-            // newmtl find, add a default material to array
-            if (regex_search(line, result, regex("newmtl\\s+(\\S+)")) && result.size() == 2)
+            // 'newmtl' find, add a default material to array
+            if (regex_search(line, result, std::regex("newmtl\\s+(\\S+)")) && result.size() == 2)
             {
-                material_name[string(result[1])] = material_.size();
+                material_name[std::string(result[1])] = material_.size();
                 material_.push_back(Material());
                 continue;
             }
             // update material details
-            if (regex_search(line, result, regex("\\s*Kd\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)")))
+            if (regex_search(line, result, std::regex("\\s*Kd\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)")))
                 material_.back().Kd = {tofloat(result[1]), tofloat(result[2]), tofloat(result[3])};
-            else if (regex_search(line, result, regex("\\s*Ks\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)")))
+            else if (regex_search(line, result, std::regex("\\s*Ks\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)")))
                 material_.back().Ks = {tofloat(result[1]), tofloat(result[2]), tofloat(result[3])};
-            else if (regex_search(line, result, regex("\\s*Kr\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)")))
+            else if (regex_search(line, result, std::regex("\\s*Kr\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)")))
                 material_.back().Kr = {tofloat(result[1]), tofloat(result[2]), tofloat(result[3])};
-            else if (regex_search(line, result, regex("\\s*Le\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)")))
+            else if (regex_search(line, result, std::regex("\\s*Le\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)")))
                 material_.back().Le = {tofloat(result[1]), tofloat(result[2]), tofloat(result[3])};
-            else if (regex_search(line, result, regex("\\s*Ns\\s+(\\S+)")))
+            else if (regex_search(line, result, std::regex("\\s*Ns\\s+(\\S+)")))
                 material_.back().Ns = tofloat(result[1]);
-            else if (regex_search(line, result, regex("\\s*Nr\\s+(\\S+)")))
+            else if (regex_search(line, result, std::regex("\\s*Nr\\s+(\\S+)")))
                 material_.back().Nr = tofloat(result[1]);
-            else if (regex_search(line, result, regex("map_Kd\\s+(\\S+)")))
-                material_.back().Map_Kd.load(dir_path + string(result[1])); // load picture
+            else if (regex_search(line, result, std::regex("map_Kd\\s+(\\S+)")))
+                material_.back().Map_Kd.load(dir_path + std::string(result[1])); // load picture
             else
                 continue;
         }
         for (Material &i : material_)
         {
-            float kd = max3(i.Kd.x, i.Kd.y, i.Kd.z);
-            float ks = max3(i.Ks.x, i.Ks.y, i.Ks.z);
-            float kr = max3(i.Kr.x, i.Kr.y, i.Kr.z);
-            float _sum = kd + ks + kr; // kd + ks + kr <= 1;
+            double kd = max3(i.Kd.x, i.Kd.y, i.Kd.z);
+            double ks = max3(i.Ks.x, i.Ks.y, i.Ks.z);
+            double kr = max3(i.Kr.x, i.Kr.y, i.Kr.z);
+            double _sum = kd + ks + kr; // kd + ks + kr <= 1;
             if (_sum > 1)
             {
                 kd /= _sum;

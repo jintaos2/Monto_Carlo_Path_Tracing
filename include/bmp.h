@@ -24,7 +24,7 @@ struct _Color
 class Bitmap
 {
 public:
-    inline virtual ~Bitmap()
+    inline ~Bitmap()
     {
         if (_bits)
             delete[] _bits;
@@ -46,22 +46,16 @@ public:
             std::swap(_bits[i], _bits[i + 2]);
         }
     }
-
     inline Bitmap(const Bitmap &src) : _w(src._w), _h(src._h), _pitch(src._pitch)
     {
         _bits = new uint8_t[_pitch * _h];
         memcpy(_bits, src._bits, _pitch * _h);
     }
-
     inline Bitmap(const char *filename)
     {
         Bitmap *tmp = LoadFile(filename);
         if (tmp == NULL)
-        {
-            std::string msg = "load failed: ";
-            msg.append(filename);
-            throw std::runtime_error(msg);
-        }
+            std::cout << "load failed: \n";
         _w = tmp->_w;
         _h = tmp->_h;
         _pitch = tmp->_pitch;
@@ -71,7 +65,6 @@ public:
         delete tmp;
     }
 
-public:
     inline int GetW() const { return _w; }
     inline int GetH() const { return _h; }
     inline int GetPitch() const { return _pitch; }
@@ -80,7 +73,6 @@ public:
     inline uint8_t *GetLine(int y) { return _bits + _pitch * y; }
     inline const uint8_t *GetLine(int y) const { return _bits + _pitch * y; }
 
-public:
     inline uint32_t GetPixel(int x, int y) const
     {
         uint32_t color = 0;
@@ -90,6 +82,13 @@ public:
         }
         return color;
     }
+    inline void SetPixel(int x, int y, uint32_t color)
+    {
+        if (x >= 0 && x < _w && y >= 0 && y < _h)
+        {
+            memcpy(_bits + y * _pitch + x * 4, &color, sizeof(uint32_t));
+        }
+    }
     glm::vec3 GetColor(int idx)
     {
         float bb = _bits[idx * 4];
@@ -97,13 +96,6 @@ public:
         float rr = _bits[idx * 4 + 2];
         glm::vec3 ret = glm::vec3(rr / 255.0f, gg / 255.0f, bb / 255.0f);
         return ret;
-    }
-    inline void SetPixel(int x, int y, uint32_t color)
-    {
-        if (x >= 0 && x < _w && y >= 0 && y < _h)
-        {
-            memcpy(_bits + y * _pitch + x * 4, &color, sizeof(uint32_t));
-        }
     }
     struct BITMAPINFOHEADER
     { // bmih
@@ -211,6 +203,29 @@ public:
         fclose(fp);
         return true;
     }
+    // 上下反转.
+    inline void FlipVertical()
+    {
+        uint8_t *buffer = new uint8_t[_pitch];
+        for (int i = 0, j = _h - 1; i < j; i++, j--)
+        {
+            memcpy(buffer, GetLine(i), _pitch);
+            memcpy(GetLine(i), GetLine(j), _pitch);
+            memcpy(GetLine(j), buffer, _pitch);
+        }
+        delete[] buffer;
+    }
+
+    // // 简单采样..
+    // inline uint32_t Sample2D_easy(float u, float v)
+    // {
+    //     uint32_t x1 = u * _w;
+    //     uint32_t y1 = v * _h;
+    //     x1 = x1 > _w - 1 ? _w - 1 : x1;
+    //     y1 = y1 > _h - 1 ? _h - 1 : y1;
+    //     uint32_t bgra = ((uint32_t *)_bits)[y1 * _w + x1];
+    //     return (bgra & 0x000000ff) << 16 | (bgra >> 16) & 0x000000ff | bgra & 0xff00ff00;
+    // }
 
     // // 双线性插值.
     // inline uint32_t SampleBilinear(float x, float y) const
@@ -258,64 +273,7 @@ public:
     //     uint32_t R = (c00 & 0x00ff0000) * f00 + (c01 & 0x00ff0000) * f01 + (c10 & 0x00ff0000) * f10 + (c11 & 0x00ff0000) * f11;
     //     return (B & 0x000000ff) << 16 | (G & 0x0000ff00) | (R & 0x00ff0000) >> 16 | 0xff000000;
     // }
-    inline uint32_t get_color(int x, int y)
-    {
-        return ((uint32_t *)_bits)[y * _w + x];
-    }
-    inline uint32_t Sample2D_easy(float u, float v)
-    {
-        uint32_t x1 = u * _w;
-        uint32_t y1 = v * _h;
-        x1 = x1 > _w - 1 ? _w - 1 : x1;
-        y1 = y1 > _h - 1 ? _h - 1 : y1;
-        uint32_t bgra = ((uint32_t *)_bits)[y1 * _w + x1];
-        return (bgra & 0x000000ff) << 16 | (bgra >> 16) & 0x000000ff | bgra & 0xff00ff00;
-    }
-    // 纹理采样：直接传入 Vec2f
-    // inline uint32_t Sample2D(const Vec2f &uv)
-    // {
-    //     return Sample2D(uv.x, uv.y);
-    // }
 
-    // 上下反转.
-    inline void FlipVertical()
-    {
-        uint8_t *buffer = new uint8_t[_pitch];
-        for (int i = 0, j = _h - 1; i < j; i++, j--)
-        {
-            memcpy(buffer, GetLine(i), _pitch);
-            memcpy(GetLine(i), GetLine(j), _pitch);
-            memcpy(GetLine(j), buffer, _pitch);
-        }
-        delete[] buffer;
-    }
-
-protected:
-    // 双线性插值计算：给出四个点的颜色，以及坐标偏移，计算结果.
-    inline static uint32_t BilinearInterp(uint32_t tl, uint32_t tr,
-                                          uint32_t bl, uint32_t br, int32_t distx, int32_t disty)
-    {
-        uint32_t f, r;
-        int32_t distxy = distx * disty;
-        int32_t distxiy = (distx << 8) - distxy; /* distx * (256 - disty) */
-        int32_t distixy = (disty << 8) - distxy; /* disty * (256 - distx) */
-        int32_t distixiy = 256 * 256 - (disty << 8) - (distx << 8) + distxy;
-        r = (tl & 0x000000ff) * distixiy + (tr & 0x000000ff) * distxiy + (bl & 0x000000ff) * distixy + (br & 0x000000ff) * distxy;
-        f = (tl & 0x0000ff00) * distixiy + (tr & 0x0000ff00) * distxiy + (bl & 0x0000ff00) * distixy + (br & 0x0000ff00) * distxy;
-        r |= f & 0xff000000;
-        tl >>= 16;
-        tr >>= 16;
-        bl >>= 16;
-        br >>= 16;
-        r >>= 16;
-        f = (tl & 0x000000ff) * distixiy + (tr & 0x000000ff) * distxiy + (bl & 0x000000ff) * distixy + (br & 0x000000ff) * distxy;
-        r |= f & 0x00ff0000;
-        f = (tl & 0x0000ff00) * distixiy + (tr & 0x0000ff00) * distxiy + (bl & 0x0000ff00) * distixy + (br & 0x0000ff00) * distxy;
-        r |= f & 0xff000000;
-        return r;
-    }
-
-public:
     int32_t _w;
     int32_t _h;
     int32_t _pitch;
