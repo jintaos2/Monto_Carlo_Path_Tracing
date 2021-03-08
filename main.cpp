@@ -6,44 +6,39 @@
 using namespace glm;
 using namespace std;
 
-#define SCR_WIDTH 400
-#define SCR_HEIGHT 400
-#define ZOOM 2
+#define SCR_WIDTH 1080 /2
+#define SCR_HEIGHT 1080 /2
+#define ZOOM 1
 
 int main()
 {
-
-    // string test("f 1/1/1 2/2/2 3/3/3");
-    // smatch result;
-    // regex r("\\s*f\\s+(\\d+)/(\\d+)/(\\d+)\\s+(\\d+)/(\\d+)/(\\d+)\\s+(\\d+)/(\\d+)/(\\d+)");
-    // if (regex_search(test, result, r))
-    // {
-    //     for (int i = 0; i < result.size(); ++i)
-    //     {
-    //         cout << result[i] << endl;
-    //     }
-    // }
     Render renderer(SCR_WIDTH, SCR_HEIGHT);
 
     Model box("scenes/cornellbox/cornellbox.obj");
     Obj obj0(box);
     renderer.set_camera(glm::dvec3(0, 0, 2.5), glm::dvec3(0, 0, 0), glm::dvec3(0, 1, 0), 60);
+    renderer.adapted_lum = 1.5;
 
     // Model room("scenes/diningroom/diningroom.obj");
     // Obj obj0(room);
     // renderer.set_camera(glm::dvec3(0, 12.72,31.85), glm::dvec3(0, 12.546, 30.865), glm::dvec3(0, 0.985, -0.174), 45);
+    // renderer.adapted_lum = 1.4;
 
     // Model car("scenes/car/car.obj");
     // Obj obj0(car);
-    // renderer.set_camera(glm::dvec3(0, 0, 2.5), glm::dvec3(0, 0, 0), glm::dvec3(0, 1, 0), 60);
+    // renderer.set_camera(glm::dvec3(8.22, -0.61, -9.8), glm::dvec3(7.514, -0.702, -9.097), glm::dvec3(-0.065, 0.996, 0.065), 45);
+    // renderer.set_camera(glm::dvec3(5.72, 0.12, 9.55), glm::dvec3(5.085, -0.131, 8.819), glm::dvec3(-0.165, 0.968, -0.189), 45);
+    // renderer.adapted_lum = 3;
+    // renderer.set_skybox("scenes/car/environment_day.hdr");
+    // double k = 72 * std::_Pi / 180;
+    // renderer.skybox_rotate = {{glm::cos(k), 0, glm::sin(k)},
+                            //   {0, 1, 0},
+                            //   {-glm::sin(k), 0, glm::cos(k)}};
+
 
     renderer.add_obj(obj0);
     obj0.set_pose(glm::mat4x4(1.0), 1.0);
 
-    renderer.set_background(glm::dvec3(0, 0, 0));
-    renderer.SAMPLES = 100000000;
-
-    // while(1){}
     ////////////////////
     // GLFW
     ////////////////////

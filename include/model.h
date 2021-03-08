@@ -10,6 +10,7 @@
 #include "hdr.h"
 #include "tools.h"
 
+/* load picture, +x = right, +y = up */
 class Picture
 {
 public:
@@ -20,6 +21,7 @@ public:
     Picture() {}
     void load(std::string filename)
     {
+        std::cout << "[Picture] " << filename << std::endl;
         filename_ = filename;
         int i = filename.size() - 3;
         if (filename.substr(i, 3) == "bmp")
@@ -34,10 +36,14 @@ public:
         {
             w = bmp.GetW();
             h = bmp.GetH();
-            for (int i = 0; i < w * h; ++i)
+            for (int y = 0; y < h; ++y)
             {
-                glm::dvec3 color = bmp.GetColor(i);
-                data_.push_back(color);
+                for (int x = 0; x < w; ++x)
+                {
+                    int idx = (h - 1 - y) * w + x;
+                    glm::dvec3 color = bmp.GetColor(idx);
+                    data_.push_back(color);
+                }
             }
             empty_ = false;
         }
@@ -50,10 +56,14 @@ public:
             std::cout << filename << std::endl;
             w = hdr.color.width;
             h = hdr.color.height;
-            for (int i = 0; i < w * h; ++i)
+            for (int y = 0; y < h; ++y)
             {
-                glm::dvec3 color = hdr.GetColor(i);
-                data_.push_back(color);
+                for (int x = 0; x < w; ++x)
+                {
+                    int idx = (h - 1 - y) * w + x;
+                    glm::dvec3 color = hdr.GetColor(idx);
+                    data_.push_back(color);
+                }
             }
             empty_ = false;
         }
@@ -88,9 +98,11 @@ public:
     std::vector<glm::dvec3> vertex_;
     std::vector<glm::dvec3> norm_;
     std::vector<glm::dvec2> uv_coord_;
-    std::vector<Material> material_; // material_[0] is default, no matter .mtl file exists or not
-    std::vector<glm::imat3x4> face_; // 3 line of {vertex_idx, norm_idx, uv_coord_idx, material_idx}
-                                     // idx start from 0
+    // material_[0] is default, no matter .mtl file exists or not
+    std::vector<Material> material_;
+    // 3 line of {vertex_idx, norm_idx, uv_coord_idx, material_idx}
+    std::vector<glm::imat3x4> face_;
+    // idx start from 0
 
     std::map<std::string, int> material_name; // find material idx by name
     std::string dir_path;                     // 根目录..
@@ -99,6 +111,7 @@ public:
 
     Model(std::string filename)
     {
+        std::cout << "[Model] " << filename << std::endl;
         std::smatch result;
         // get the path of obj file
         if (regex_search(filename, result, std::regex("(.*/)[^/]+")) && result.size() == 2)
@@ -224,7 +237,6 @@ public:
                 }
             }
         }
-        std::cout << "read " << filename << std::endl;
     }
 
     inline void load_material(std::string filename)

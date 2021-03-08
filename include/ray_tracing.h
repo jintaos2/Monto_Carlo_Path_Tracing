@@ -3,11 +3,13 @@
 
 #include <glm.hpp>
 #include <ctime>
+#include <cmath>
 #include <random>
 #include "omp.h"
 #include "model.h"
 
-#define NS 10
+#define NS 3
+#define RAY_DEEPTH 9
 
 // 3D model + pose and scale
 struct Obj
@@ -49,22 +51,21 @@ public:
             fb2_ = NULL;
         }
     }
-    // fill background color
-    inline void fill(glm::dvec3 color)
+    inline void clear()
     {
         for (int i = 0; i < w_ * h_; ++i)
-            fb_[i] = toRGB(color);
+            fb_[i] = 0;
         for (int i = 0; i < w_ * h_; ++i)
-            fb2_[i] = color;
+            fb2_[i] = glm::dvec3(0, 0, 0);
     }
     inline void set_pixel(int x, int y, uint32_t color) { fb_[y * w_ + x] = color; }
     // 累加光照强度..
     inline void accumulate(int x, int y, glm::dvec3 color) { fb2_[y * w_ + x] += color; }
     // 平均光照强度..
-    inline void show(double n)
+    inline void show(double n, double adapted_lum)
     {
         for (int i = 0; i < w_ * h_; ++i)
-            fb_[i] = toRGB(fb2_[i] / n);
+            fb_[i] = toRGB(ToneMapping(fb2_[i] / n, adapted_lum));
     }
 };
 
@@ -122,7 +123,7 @@ struct BRDF
     // phong 高光反射 重要性采样.
     inline glm::dvec3 specular(glm::dvec3 &ref, double Ns)
     {
-        double cos_theta = glm::pow(randf1(), 1.0 / (Ns + 1.0));
+        double cos_theta = std::pow(randf1(), 1.0 / (Ns + 1.0));
         double sin_theta = glm::sqrt(1.0 - cos_theta * cos_theta);
 
         double phi = 2.0 * std::_Pi * randf1();
@@ -235,7 +236,7 @@ public:
     // 光线与一些三角形求交..
     inline void hit_test_faces(Ray &ray, std::vector<Face3D *> &faces)
     {
-        for (Face3D *face : faces) 
+        for (Face3D *face : faces)
         {
             glm::dvec3 d = ray.d;
             glm::dvec3 p0 = face->v1;
@@ -258,7 +259,7 @@ public:
             if (t > 1e-10 && t <= ray.hit_time)
             {
                 ray.hit_time = t;
-                ray.hit_face = face;  // 如果相交，指针不为 NULL
+                ray.hit_face = face; // 如果相交，指针不为 NULL
                 ray.barycentric = glm::dvec3(1.0 - u - v, u, v);
             }
         }
@@ -319,16 +320,18 @@ public:
     glm::dvec3 camera_position = glm::dvec3(0, 0, 0); //
     glm::dmat3x3 camera_rotate = glm::dmat3x3(1.0);   //
     FrameBuffer fb;                                   // frame buffer
-    glm::dvec3 background;                            // hdr rgb
-    int SAMPLES = 1000;                               // rays per pixel max
+    glm::dvec3 background = glm::dvec3(0, 0, 0);      //
+    double adapted_lum = 1;                           // hdr to ldr
 
     std::vector<Obj *> objs;
     std::vector<Face3D> faces;
     BVH bvh;
     BRDF brdf;
+    Picture skybox;
+    glm::dmat3x3 skybox_rotate = glm::dmat3x3(1.0);
 
     clock_t timer;
-    int n_threads;
+    int n_threads = 1;
     bool _init = true;
     int n_sample = 0;
 
@@ -359,30 +362,35 @@ public:
         camera_rotate[0][2] = z[0];
         camera_rotate[1][2] = z[1];
         camera_rotate[2][2] = z[2];
-        // std::cout << print_mat3x3(camera_rotate) << view << camera_distance << std::endl;
     }
-    inline void set_background(glm::dvec3 in) { background = in; }
     inline void add_obj(Obj &Model) { objs.push_back(&Model); }
+    void set_skybox(std::string filename) { skybox.load(filename); }
 
-    void set_skybox(std::string filename)
+    inline glm::dvec3 skybox_color(glm::dvec3 &d)
     {
-        return;
-    }
-    inline glm::dvec3 skybox_color(glm::dvec3 dir)
-    {
-        return background;
+        if (skybox.empty_)
+            return background;
+
+        glm::vec3 dir_ = d * skybox_rotate;
+        double y = 1.0 - glm::acos(dir_.y) / std::_Pi;
+        double x = 0;
+        if (dir_.z != 0)
+            x = dir_.z > 0 ? glm::atan(dir_.x / dir_.z) : std::_Pi + glm::atan(dir_.x / dir_.z);
+
+        x = 0.75 - x / (std::_Pi * 2);
+        // std::cout << glm::atan(-1) << std::endl;
+
+        return skybox.Sample2D(glm::dvec2(x, y));
     }
     int render()
     {
-        // std::cout << print_vec3(glm::normalize(glm::dvec3(0, 0, 0))) << std::endl;
-        // std::cout << print_mat3x3(brdf.norm_to_world(glm::dvec3(0, 0, 1))) << std::endl;
-        if (_init)  // each frame
+        if (_init) // each frame
         {
             timer = clock();
             n_sample = 0;
             _init = false;
             bvh = BVH();
-            fb.fill(background);
+            fb.clear();
             faces.clear();
 
             for (Obj *i : objs)
@@ -390,26 +398,24 @@ public:
             for (Face3D &i : faces)
                 bvh.insert_face(&i);
             bvh.build_subtree();
-            std::cout << "BVH: " << get_time_ms() << " ms\tfaces:" << faces.size() << '\n';
+            std::cout << "BVH: " << get_time_ms()
+                      << " ms\tfaces:" << faces.size() << '\n';
         }
-        if (faces.empty())
-            return -1;
 
-        timer = clock();
 #pragma omp parallel for
         for (int x = 0; x < fb.w_; ++x) // current line
         {
             for (int y = 0; y < fb.h_; ++y) // current pixel
             {
-                glm::dvec3 color = glm::dvec3(0, 0, 0);
-                for (int i = 0; i < NS; ++i) // number of samples
+                glm::dvec3 color(0, 0, 0);
+                for (int i = 0; i < NS; ++i)
                     color += ray_casting(x, y);
                 fb.accumulate(x, y, color);
             }
         }
         n_sample += NS;
-        fb.show(n_sample);
-        std::cout << "n_sample = " << n_sample << "\ttime = " << get_time_ms() << " ms\n";
+        fb.show(n_sample, adapted_lum);
+        std::cout << "[simple] " << n_sample << "\ttime = " << get_time_ms() << " ms\n";
         return n_sample;
     }
     inline glm::dvec3 ray_casting(int x, int y)
@@ -419,24 +425,22 @@ public:
         double xx = fb.w_ / 2 - x + brdf.randf2() * 0.2;
         double yy = y - fb.h_ / 2 + brdf.randf2() * 0.2;
         double zz = camera_distance;
-        glm::dvec3 direction = glm::dvec3(xx / zz, yy / zz, 1.0);
+        glm::dvec3 direction(xx, yy, zz);
         ray.d = glm::normalize(direction * camera_rotate);
-
-        // std::cout << print_vec3(ray.p) << print_vec3(ray.d) << std::endl;
         ray_tracing(ray);
         return ray.color;
     }
     inline void ray_tracing(Ray &ray)
     {
-        if (ray.deepth > 8)
+        if (ray.deepth > RAY_DEEPTH)
         {
             ray.color = glm::dvec3(0, 0, 0);
             return;
         }
-        double Na = ray.deepth == 0;
         ray.hit_face = NULL;
         ray.hit_time = DBL_MAX;
-        bvh.hit_test(ray); // 50% total time
+        bvh.hit_test(ray);
+        // 40% total time
         // bvh.hit_test(ray);
         // bvh.hit_test(ray);
         if (!ray.hit_face)
@@ -446,51 +450,33 @@ public:
         }
         ray.deepth += 1;
         Face3D *f = ray.hit_face;
-        // ray.color = f->m.Kd;
-        // return;
+
         Material &m = f->m;
-        double t = ray.hit_time;
         glm::dvec3 coord = ray.barycentric;
-        glm::dvec3 N_ = glm::normalize(coord.x * f->n1 + coord.y * f->n2 + coord.z * f->n3); // norm at hit point
-        glm::dvec2 uv_ = coord.x * f->uv1 + coord.y * f->uv2 + coord.z * f->uv3;             // texture coord
-        glm::dvec3 V_ = ray.d;                                                               // visual dir
-        glm::dvec3 R_ = glm::reflect(V_, N_);
+        glm::dvec3 N_ = glm::normalize(coord.x * f->n1 + coord.y * f->n2 + coord.z * f->n3);
+        glm::dvec2 uv_ = coord.x * f->uv1 + coord.y * f->uv2 + coord.z * f->uv3;
+        uv_.x -= std::floor(uv_.x);
+        uv_.y -= std::floor(uv_.y);
+        glm::dvec3 V_ = ray.d;                // visual dir
+        glm::dvec3 R_ = glm::reflect(V_, N_); // reflect dir
 
-        // ray.p = ray.p + t * V_;
-        // ray.d = reflect(V_, N_);
-        // ray_tracing(ray);
-        // ray.color = glm::dvec3(1,1,1);
-        // if (!m.Map_Kd.empty_)
-        // {
-        //     ray.color = m.Map_Kd.Sample2D(uv_);
-        // }
-        // return;
-
-        /******* 30% time ******/
-        glm::dvec3 K;  // coeff
+        // 30% time
+        glm::dvec3 K;  // 1 - 吸收率..
         glm::dvec3 L_; // simple direction
         double rand_ = brdf.randf1();
         double pkd = m.kd;
         double pks = pkd + m.ks;
         double pkr = pks + m.kr;
-        // std::cout << "rand " << rand_ << "\t Kd " << pkd << "\t Ks " << pks << std::endl;
         if (rand_ < pkd)
         {
             L_ = brdf.diffuse(N_);
-            // std::cout << "N_ " <<  print_vec3(N_) << " L_ " << print_vec3(L_) << std::endl;
             if (m.Map_Kd.empty_)
                 K = m.Kd;
             else
-            {
-                // std::cout << "uv: " << uv_.x << ' ' << uv_.y << std::endl;
                 K = m.Map_Kd.Sample2D(uv_);
-            }
         }
         else if (rand_ < pks)
         {
-            // L_ = reflect(V_, N_) + brdf.rand_sphere() * pow(brdf.randf(), m.Ns * 0.1f);
-            // L_ = glm::normalize(L_);
-            // std::cout << m.ks << "   Ks:" << print_vec3(m.Ks) << std::endl;
             L_ = brdf.specular(R_, m.Ns);
             K = m.Ks;
         }
@@ -498,33 +484,13 @@ public:
         {
             K = m.Kr;
             glm::dvec3 N__ = N_;
-            double Nr = m.Nr;
-            double cos_theta1 = -glm::dot(V_, N_);
-            if (cos_theta1 < 0)
+            double Nr = 1.0 / m.Nr;
+            if (glm::dot(V_, N_) > 0)
             {
                 N__ = -N_;
-                cos_theta1 = -cos_theta1;
                 Nr = 1.0 / Nr;
             }
-            L_ = brdf.refract(V_, N__, 1.0 / Nr);
-            L_ = glm::normalize(L_);
-            // if (cos_theta1 > 0.9999f)
-            //     L_ = V_;
-            // else
-            // {
-            //     double sin_theta1 = sqrtf(1 - cos_theta1 * cos_theta1);
-            //     double sin_theta2 = sin_theta1 / Nr;
-            //     if (sin_theta2 > 0.9999f)
-            //         L_ = reflect(V_, N_);
-            //     else
-            //     {
-            //         double cos_theta2 = sqrtf(1 - sin_theta2 * sin_theta2);
-            //         // std::cout << "cos1:" << cos_theta1 << " cos2:" << cos_theta2 << " Nr:" << Nr << std::endl;
-            //         glm::dvec3 t1 = (V_ + N_ * cos_theta1) / Nr;
-            //         glm::dvec3 t2 = -N_ * cos_theta2;
-            //         L_ = glm::normalize(t1 + t2);
-            //     }
-            // }
+            L_ = brdf.refract(V_, N__, Nr);
         }
         else
         {
@@ -532,32 +498,14 @@ public:
             return;
         }
 
-        ray.p = ray.p + t * V_;
+        ray.p = ray.p + ray.hit_time * V_;
         ray.d = L_;
         ray_tracing(ray);
 
         ray.color = m.Le + ray.color * K;
-        //   (f_min->m.Kd * max_(glm::dot(N_, L_), .0) +
-        //    f_min->m.Ks * pow(max_(glm::dot(H_, N_), .0), f_min->m.Ns));
     }
     void transform_face(Obj *o)
     {
-        // glm::dmat4x4 inverse_camera = transpose(camera);
-        // glm::dmat3x3 rotate = inverse_camera;
-        // glm::dvec3 move;
-        // move[0] = camera[0][3];
-        // move[1] = camera[1][3];
-        // move[2] = camera[2][3];
-        // // move = -rotate * move;
-        // move = -move * rotate;
-        // inverse_camera[0][3] = move.x;
-        // inverse_camera[1][3] = move.y;
-        // inverse_camera[2][3] = move.z;
-        // inverse_camera[3][0] = 0;
-        // inverse_camera[3][1] = 0;
-        // inverse_camera[3][2] = 0;
-        // inverse_camera = inverse_camera * o->coordinate; // 转换到相机空间.
-        // inverse_camera = o->coordinate * inverse_camera;
         glm::dmat3x3 rotate = o->pose * o->scale; // 物体缩放..
         glm::dvec3 move;                          // 物体平移..
         move[0] = o->pose[0][3];
