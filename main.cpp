@@ -6,38 +6,45 @@
 using namespace glm;
 using namespace std;
 
-#define SCR_WIDTH 1080 /2
-#define SCR_HEIGHT 1080 /2
+#define SCR_WIDTH 1920 
+#define SCR_HEIGHT 1080 
 #define ZOOM 1
 
 int main()
 {
     Render renderer(SCR_WIDTH, SCR_HEIGHT);
 
-    Model box("scenes/cornellbox/cornellbox.obj");
-    Obj obj0(box);
-    renderer.set_camera(glm::dvec3(0, 0, 2.5), glm::dvec3(0, 0, 0), glm::dvec3(0, 1, 0), 60);
-    renderer.adapted_lum = 1.5;
-
-    // Model room("scenes/diningroom/diningroom.obj");
-    // Obj obj0(room);
-    // renderer.set_camera(glm::dvec3(0, 12.72,31.85), glm::dvec3(0, 12.546, 30.865), glm::dvec3(0, 0.985, -0.174), 45);
+    // Model box("scenes/cornellbox/cornellbox.obj");
+    // Obj obj0(box);
+    // renderer.set_camera(glm::dvec3(0, 0, 2.5), glm::dvec3(0, 0, 0), glm::dvec3(0, 1, 0), 60);
     // renderer.adapted_lum = 1.4;
+
+    Model box("scenes/diningroom/cornellbox.obj");
+    Obj obj0(box);
+    Model room("scenes/diningroom/diningroom.obj");
+    Obj obj1(room);
+    renderer.set_camera(glm::dvec3(0, 12.72, 31.85), glm::dvec3(0, 12.546, 30.865), glm::dvec3(0, 0.985, -0.174), 45);
+    renderer.adapted_lum = 1.5;
 
     // Model car("scenes/car/car.obj");
     // Obj obj0(car);
-    // renderer.set_camera(glm::dvec3(8.22, -0.61, -9.8), glm::dvec3(7.514, -0.702, -9.097), glm::dvec3(-0.065, 0.996, 0.065), 45);
+    // // renderer.set_camera(glm::dvec3(8.22, -0.61, -9.8), glm::dvec3(7.514, -0.702, -9.097), glm::dvec3(-0.065, 0.996, 0.065), 45);
     // renderer.set_camera(glm::dvec3(5.72, 0.12, 9.55), glm::dvec3(5.085, -0.131, 8.819), glm::dvec3(-0.165, 0.968, -0.189), 45);
-    // renderer.adapted_lum = 3;
+    // renderer.adapted_lum = 2;
     // renderer.set_skybox("scenes/car/environment_day.hdr");
-    // double k = 72 * std::_Pi / 180;
+    // double k = 148 * std::_Pi / 180;  // 72, 148
     // renderer.skybox_rotate = {{glm::cos(k), 0, glm::sin(k)},
-                            //   {0, 1, 0},
-                            //   {-glm::sin(k), 0, glm::cos(k)}};
-
+    //                           {0, 1, 0},
+    //                           {-glm::sin(k), 0, glm::cos(k)}};
 
     renderer.add_obj(obj0);
+    renderer.add_obj(obj1);
     obj0.set_pose(glm::mat4x4(1.0), 1.0);
+    obj0.set_pose({{1, 0, 0, -2},
+                   {0, 1, 0, 14},
+                   {0, 0, 1, 20},
+                   {0, 0, 0, 1}},
+                  3.0);
 
     ////////////////////
     // GLFW

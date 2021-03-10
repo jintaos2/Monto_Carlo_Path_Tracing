@@ -378,8 +378,6 @@ public:
             x = dir_.z > 0 ? glm::atan(dir_.x / dir_.z) : std::_Pi + glm::atan(dir_.x / dir_.z);
 
         x = 0.75 - x / (std::_Pi * 2);
-        // std::cout << glm::atan(-1) << std::endl;
-
         return skybox.Sample2D(glm::dvec2(x, y));
     }
     int render()
@@ -398,7 +396,7 @@ public:
             for (Face3D &i : faces)
                 bvh.insert_face(&i);
             bvh.build_subtree();
-            std::cout << "BVH: " << get_time_ms()
+            std::cout << "[init]   " << get_time_ms()
                       << " ms\tfaces:" << faces.size() << '\n';
         }
 
@@ -415,7 +413,7 @@ public:
         }
         n_sample += NS;
         fb.show(n_sample, adapted_lum);
-        std::cout << "[simple] " << n_sample << "\ttime = " << get_time_ms() << " ms\n";
+        std::cout << "[sample] " << n_sample << "\tt: " << get_time_ms() / 1000 << " s\n";
         return n_sample;
     }
     inline glm::dvec3 ray_casting(int x, int y)
@@ -440,9 +438,6 @@ public:
         ray.hit_face = NULL;
         ray.hit_time = DBL_MAX;
         bvh.hit_test(ray);
-        // 40% total time
-        // bvh.hit_test(ray);
-        // bvh.hit_test(ray);
         if (!ray.hit_face)
         {
             ray.color = skybox_color(ray.d);
@@ -542,7 +537,6 @@ public:
     double get_time_ms()
     {
         double ret = (double)(clock() - timer) * 1000.0 / CLOCKS_PER_SEC;
-        timer = clock();
         return ret;
     }
 };
