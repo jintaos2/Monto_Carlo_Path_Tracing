@@ -8,7 +8,7 @@
 #include "omp.h"
 #include "model.h"
 
-#define NS 3
+#define NS 1
 #define RAY_DEEPTH 9
 
 // 3D model + pose and scale
@@ -330,6 +330,8 @@ public:
     Picture skybox;
     glm::dmat3x3 skybox_rotate = glm::dmat3x3(1.0);
 
+    std::vector<glm::ivec2> pixels;
+
     clock_t timer;
     int n_threads = 1;
     bool _init = true;
@@ -396,21 +398,32 @@ public:
             for (Face3D &i : faces)
                 bvh.insert_face(&i);
             bvh.build_subtree();
+
+            for (int x = 0; x < fb.w_; ++x) // current line
+            {
+                for (int y = 0; y < fb.h_; ++y) // current pixel
+                    pixels.push_back({x, y});
+            }
+            // shuffle pixels to average cpu time of each thread
+            for (int i = pixels.size() - 1; i > 0; --i)
+            {
+                int shuff_idx = brdf.gen() % (i + 1);
+                std::swap(pixels[shuff_idx], pixels[i]);
+            }
+
             std::cout << "[init]   " << get_time_ms()
                       << " ms\tfaces:" << faces.size() << '\n';
         }
 
 #pragma omp parallel for
-        for (int x = 0; x < fb.w_; ++x) // current line
+        for (int i = 0; i < pixels.size(); ++i)
         {
-            for (int y = 0; y < fb.h_; ++y) // current pixel
-            {
-                glm::dvec3 color(0, 0, 0);
-                for (int i = 0; i < NS; ++i)
-                    color += ray_casting(x, y);
-                fb.accumulate(x, y, color);
-            }
+            int x = pixels[i].x;
+            int y = pixels[i].y;
+            for (int j = 0; j < NS; ++j)
+                fb.accumulate(x, y, ray_casting(x, y));
         }
+
         n_sample += NS;
         fb.show(n_sample, adapted_lum);
         std::cout << "[sample] " << n_sample << "\tt: " << get_time_ms() / 1000 << " s\n";

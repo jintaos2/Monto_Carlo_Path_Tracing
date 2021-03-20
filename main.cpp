@@ -6,8 +6,8 @@
 using namespace glm;
 using namespace std;
 
-#define SCR_WIDTH 1920 
-#define SCR_HEIGHT 1080 
+#define SCR_WIDTH 3840 
+#define SCR_HEIGHT 2160 
 #define ZOOM 1
 
 int main()
@@ -24,7 +24,12 @@ int main()
     Model room("scenes/diningroom/diningroom.obj");
     Obj obj1(room);
     renderer.set_camera(glm::dvec3(0, 12.72, 31.85), glm::dvec3(0, 12.546, 30.865), glm::dvec3(0, 0.985, -0.174), 45);
-    renderer.adapted_lum = 1.5;
+    renderer.adapted_lum = 1.2;
+    renderer.set_skybox("scenes/diningroom/environment.hdr");
+    double k = 70 * std::_Pi / 180;  // 72, 148
+    renderer.skybox_rotate = {{glm::cos(k), 0, glm::sin(k)},
+                              {0, 1, 0},
+                              {-glm::sin(k), 0, glm::cos(k)}};
 
     // Model car("scenes/car/car.obj");
     // Obj obj0(car);
