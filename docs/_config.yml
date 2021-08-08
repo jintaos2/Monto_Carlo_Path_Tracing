@@ -1,3 +1,1 @@
-theme: jekyll-rtd-theme
-title: 你的标题
-description: 你的文档描述
+remote_theme: carlosperate/jekyll-theme-rtd
