@@ -1,9 +1,9 @@
-title: Read The Docs Jekyll Theme
-description: Port of the Read the Docs theme to Jekyll to use with GitHub Pages.
+title: x
+description: xx
 remote_theme: carlosperate/jekyll-theme-rtd
 
 # Theme settings:
-site_author: Carlos Pereira Atencio
+site_author: jmvh
 repo_url: "https://github.com/jintaos2/Monto_Carlo_Path_Tracing"
 edit_on_github: true
 github_docs_folder: true
