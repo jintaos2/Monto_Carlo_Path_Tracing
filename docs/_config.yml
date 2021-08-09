@@ -1,6 +1,6 @@
 title: x
 description: xx
-remote_theme: carlosperate/jekyll-theme-rtd
+remote_theme: rundocs/jekyll-rtd-theme
 
 # Theme settings:
 site_author: jmvh
