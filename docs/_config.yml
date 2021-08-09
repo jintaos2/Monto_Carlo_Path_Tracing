@@ -1,12 +1,15 @@
 title: x
 description: xx
+
 remote_theme: rundocs/jekyll-rtd-theme
 
-# Theme settings:
-site_author: jmvh
-edit_on_github: true
-github_docs_folder: true
-sticky_navigation: true
-prev_next_buttons_location: bottom
-search_enabled: true
-hljs_style: github-gist
+
+
+readme_index:
+  with_frontmatter: true
+
+plugins:
+  - jemoji
+  - jekyll-avatar
+  - jekyll-mentions
+
