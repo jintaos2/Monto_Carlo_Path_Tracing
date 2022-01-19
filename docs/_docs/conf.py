@@ -34,7 +34,6 @@ html_theme_options = {
     'navigation_depth': 5,
     'prev_next_buttons_location': 'bottom'
 }
-html_title = 'Monto_Carlo_Path_Tracing'
 
 
 

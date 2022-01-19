@@ -1,4 +1,6 @@
 
+Read the Docs Sphinx Theme
+==========================
 
 .. toctree::
    :maxdepth: 1
