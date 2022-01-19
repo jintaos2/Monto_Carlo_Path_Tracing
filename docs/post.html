@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>一、概述 &mdash; Monto_Carlo_Path_Tracing</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="数据结构" href="pre.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Monto_Carlo_Path_Tracing
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="pre.html">数据结构</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">一、概述</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#id2">二、使用方法</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#id3">三、程序细节</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id4">1. 文件读取</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#bvh">2. 坐标变换与构建 BVH 树</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">3. 光线求交</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id6">4. 递归采样</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#skybox">5. skybox 天空球</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#brdf">6. BRDF 渲染方程的蒙特卡洛采样</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hdr-ldr">7. hdr 转 ldr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id7">8. 多线程均衡负载</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#id8">四、场景展示</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#cornell-box">1. Cornell Box</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#car">2. Car</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dining-room">3. Dining room</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id9">4. Dining room +</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dining-room-texture">5. Dining room + texture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dining-room-4k">6. Dining room 4k</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Monto_Carlo_Path_Tracing</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>一、概述</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/post.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1>一、概述<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h1>
+<p>Monte Carlo Path Tracing ，材质使用 Phong 模型。</p>
+</section>
+<section id="id2">
+<h1>二、使用方法<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h1>
+<p>仅需引入头文件 <code class="docutils literal notranslate"><span class="pre">ray_tracing.h</span></code>。</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">Model</span><span class="w"> </span><span class="nf">car</span><span class="p">(</span><span class="s">&quot;scenes/car/car.obj&quot;</span><span class="p">);</span><span class="w">      </span><span class="c1">// 加载模型，支持 obj 和 mtl，贴图支持 bmp 和 hdr</span>
+<span class="n">Obj</span><span class="w"> </span><span class="nf">car1</span><span class="p">(</span><span class="n">car</span><span class="p">);</span><span class="w">                        </span><span class="c1">// 从模型实例化一个物体，支持多物体</span>
+<span class="n">car1</span><span class="p">.</span><span class="n">set_pose</span><span class="p">(</span><span class="n">glm</span><span class="o">::</span><span class="n">mat4x4</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span><span class="w"> </span><span class="mf">1.0</span><span class="p">);</span><span class="w"> </span><span class="c1">// 设置物体姿态（齐次变换矩阵）和缩放，支持运行中调整</span>
+<span class="n">Render</span><span class="w"> </span><span class="nf">renderer</span><span class="p">(</span><span class="mi">1920</span><span class="p">,</span><span class="w"> </span><span class="mi">1080</span><span class="p">);</span><span class="w">          </span><span class="c1">// 初始化渲染器</span>
+<span class="n">renderer</span><span class="p">.</span><span class="n">add_obj</span><span class="p">(</span><span class="n">car1</span><span class="p">);</span><span class="w">               </span><span class="c1">// 添加要渲染的物体</span>
+<span class="w">                                      </span><span class="c1">// 设置相机，支持运行中调整</span>
+<span class="n">renderer</span><span class="p">.</span><span class="n">set_camera</span><span class="p">(</span><span class="n">glm</span><span class="o">::</span><span class="n">dvec3</span><span class="p">(</span><span class="mf">8.22</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.61</span><span class="p">,</span><span class="w"> </span><span class="mf">-9.8</span><span class="p">),</span><span class="w"> </span>
+<span class="w">                    </span><span class="n">glm</span><span class="o">::</span><span class="n">dvec3</span><span class="p">(</span><span class="mf">7.514</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.702</span><span class="p">,</span><span class="w"> </span><span class="mf">-9.097</span><span class="p">),</span><span class="w"> </span>
+<span class="w">                    </span><span class="n">glm</span><span class="o">::</span><span class="n">dvec3</span><span class="p">(</span><span class="mf">-0.065</span><span class="p">,</span><span class="w"> </span><span class="mf">0.996</span><span class="p">,</span><span class="w"> </span><span class="mf">0.065</span><span class="p">),</span><span class="w"> </span><span class="mi">45</span><span class="p">);</span><span class="w"> </span>
+<span class="kt">int</span><span class="w"> </span><span class="n">samples</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">renderer</span><span class="p">.</span><span class="n">render</span><span class="p">();</span><span class="w">      </span><span class="c1">// 渲染并返回当前采样数。多次调用累计渲染同一帧。方便保存进度。</span>
+<span class="w">                                      </span><span class="c1">// 结果保存为 bmp 图片</span>
+<span class="n">Bitmap</span><span class="w"> </span><span class="nf">results</span><span class="p">(</span><span class="mi">1920</span><span class="p">,</span><span class="w"> </span><span class="mi">1080</span><span class="p">,</span><span class="w"> </span><span class="n">renderer</span><span class="p">.</span><span class="n">get_framebuffer</span><span class="p">());</span><span class="w"> </span>
+<span class="n">results</span><span class="p">.</span><span class="n">SaveFile</span><span class="p">(</span><span class="s">&quot;results/&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">to_string</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;.bmp&quot;</span><span class="p">);</span><span class="w"></span>
+</pre></div>
+</div>
+</section>
+<section id="id3">
+<h1>三、程序细节<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h1>
+<section id="id4">
+<h2>1. 文件读取<a class="headerlink" href="#id4" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">.mtl</span></code> 文件使用正则表达式解析，格式要求宽松</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.obj</span></code> 文件行数过多，直接用 <code class="docutils literal notranslate"><span class="pre">stringstream</span></code> 解析，不能有多余的空格。进行了一定的多线程加速（顶点，法向量，纹理坐标，面 4线程加速）</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.bmp</span></code> 加载代码来自 <a class="reference external" href="https://github.com/ssloy/tinyrenderer">tinyrenderer</a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.hdr</span></code> 加载代码作者 <em>Igor Kravtchenko</em></p></li>
+</ul>
+</section>
+<section id="bvh">
+<h2>2. 坐标变换与构建 BVH 树<a class="headerlink" href="#bvh" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>与传统渲染器不同，光线追踪只需将片元变换到世界坐标系，这部分比较简单</p></li>
+<li><p>BVH 构建直接按数量对半分，也比较简单，只是很难保证构建出比较平衡的树</p></li>
+</ul>
+</section>
+<section id="id5">
+<h2>3. 光线求交<a class="headerlink" href="#id5" title="Permalink to this headline"></a></h2>
+<ol class="arabic simple">
+<li><p>光线与 BVH 求交，得到一组包围盒</p></li>
+<li><p>将包围盒按光线进入时间前后排序</p></li>
+<li><p>对于包围盒中的每一个片元，对光线进行求交</p></li>
+<li><p>如果已经命中一个片元，则之后进入的包围盒不再需要求交。</p></li>
+</ol>
+</section>
+<section id="id6">
+<h2>4. 递归采样<a class="headerlink" href="#id6" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>如果光线路径碰撞次数大于一定值，返回黑色</p></li>
+<li><p>如果光线没有碰撞片元，返回 skybox 对应颜色</p></li>
+<li><p>如果光线碰到片元，按材质文件定义计算出的反射、漫反射、折射概率，选择方向，递归求解，再根据自发光和系数计算当前颜色并返回。</p></li>
+</ul>
+</section>
+<section id="skybox">
+<h2>5. skybox 天空球<a class="headerlink" href="#skybox" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>直接根据光线方向在球坐标系中的两个角度 <span class="math notranslate nohighlight">\(\theta \in [0,\pi]\)</span> , <span class="math notranslate nohighlight">\(\phi \in [0, 2\pi]\)</span> 当成纹理坐标采样，与位置无关</p></li>
+<li><p>可绕 <span class="math notranslate nohighlight">\(z\)</span> 轴旋转一定角度，视具体场景而定</p></li>
+</ul>
+</section>
+<section id="brdf">
+<h2>6. BRDF 渲染方程的蒙特卡洛采样<a class="headerlink" href="#brdf" title="Permalink to this headline"></a></h2>
+<img alt="_images/phone.webp" src="_images/phone.webp" />
+<ul class="simple">
+<li><p>采样数为 1， 即直接返回采样得到的光强</p></li>
+<li><p>直接将漫反射和高光反射的系数，作为对应方向上的概率分布进行采样，这样消掉了采样方程中的系数，只要将每个像素每条光线结果加起来求平均即可。相当于根据预期进行重要性采样。</p></li>
+<li><p>漫反射只跟光照入射角度有关，入射角越大，则越暗。设 <span class="math notranslate nohighlight">\(u_1, u_2\)</span> 为 0 到 1 的均匀分布，在法向量球坐标系中采样方向的 PDF 为 <span class="math notranslate nohighlight">\(\arccos(\sqrt{u_1}, 2\pi u_2)\)</span></p></li>
+<li><p>高光反射在反射光坐标系中的 PDF 为  <span class="math notranslate nohighlight">\(\arccos(u_1^{\frac{1}{n+1}}, 2\pi u_2)\)</span></p></li>
+<li><p>材质漫反射、折射、散射概率计算：材质文件中 Ks, Kd, 以及自定义的折射系数 Kr 的 RGB 的最大值。如果加起来大于 1， 则归一化。另外 Ks, Kd, Kr 还要除以对应的概率，从而保证采样正确。</p></li>
+</ul>
+</section>
+<section id="hdr-ldr">
+<h2>7. hdr 转 ldr<a class="headerlink" href="#hdr-ldr" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>渲染器采样基于物理的光强定义，最后需要转换到 RGB 256。这里使用 <span class="math notranslate nohighlight">\(1-e^{- lum * a}\)</span> 作为 Tone Mapping。其中 <span class="math notranslate nohighlight">\(lum\)</span> 是可调的全局光强信息，<span class="math notranslate nohighlight">\(a\)</span> 是输入光强。</p></li>
+</ul>
+</section>
+<section id="id7">
+<h2>8. 多线程均衡负载<a class="headerlink" href="#id7" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>由于场景固定，每个像素点的采样光线路径几乎也是固定的，如果直接在图片的长宽方向上进行并行加速，会造成某些线程提前结束而闲置的情况。因此这里将像素次序打乱，使得每个线程处理一组随机的像素，避免了浪费线程的情况。</p></li>
+</ul>
+</section>
+</section>
+<section id="id8">
+<h1>四、场景展示<a class="headerlink" href="#id8" title="Permalink to this headline"></a></h1>
+<ul class="simple">
+<li><p>CPU：Ryzen 5 3600 6c12t&#64;3.9Ghz</p></li>
+</ul>
+<section id="cornell-box">
+<h2>1. Cornell Box<a class="headerlink" href="#cornell-box" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>深度：10；光线数：10000；分辨率：1080x1080；渲染时间：3h 左右</p></li>
+<li><p>材质参数有所调整，主要是加强灯光，提高 Ns</p></li>
+<li><p>相比于参照结果，地面上和墙上出现了某种投影</p></li>
+<li><p>光源面积小，噪点多</p></li>
+</ul>
+<img alt="_images/box.jpg" src="_images/box.jpg" />
+</section>
+<section id="car">
+<h2>2. Car<a class="headerlink" href="#car" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>深度：8；光线数：20000；分辨率：1920x1080；渲染时间：15h 左右</p></li>
+<li><p>材质有所调整</p></li>
+<li><p>场景简单，skybox 光源，1000 采样后图像几乎无变化</p></li>
+</ul>
+<img alt="_images/car1.jpg" src="_images/car1.jpg" />
+<ul class="simple">
+<li><p>深度：9；光线数：15000；分辨率：1920x1080；渲染时间：10h 左右</p></li>
+<li><p>材质有所调整，玻璃增加透射</p></li>
+<li><p>1000 采样后图像几乎无变化</p></li>
+<li><p>未在 skybox 中找到参考图片的背景，所以自己选了一个相近的角度。可能贴图路面未与背景路面重合，不过影响不大</p></li>
+</ul>
+<img alt="_images/car2.jpg" src="_images/car2.jpg" />
+</section>
+<section id="dining-room">
+<h2>3. Dining room<a class="headerlink" href="#dining-room" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>深度：10；光线数：7000；分辨率：1920x1080；渲染时间：4h 左右</p></li>
+<li><p>材质有所调整，玻璃增加透射</p></li>
+<li><p>未提供贴图，场景较暗</p></li>
+</ul>
+<img alt="_images/room1.jpg" src="_images/room1.jpg" />
+</section>
+<section id="id9">
+<h2>4. Dining room +<a class="headerlink" href="#id9" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>深度：10；光线数：17000；分辨率：1920x1080；渲染时间：20h 左右</p></li>
+<li><p>增加一颗玻璃球，模拟凸透镜成像</p></li>
+<li><p>场景光源大，采样效率高，效果比较好</p></li>
+<li><p>5000 采样后只有轻微噪点</p></li>
+</ul>
+<img alt="_images/room2.jpg" src="_images/room2.jpg" />
+</section>
+<section id="dining-room-texture">
+<h2>5. Dining room + texture<a class="headerlink" href="#dining-room-texture" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>素材更新后补做，贴图 + skybox</p></li>
+<li><p>深度：10；光线数：12000；分辨率：1920x1080；渲染时间：20h 左右</p></li>
+</ul>
+<img alt="_images/room3.jpg" src="_images/room3.jpg" />
+</section>
+<section id="dining-room-4k">
+<h2>6. Dining room 4k<a class="headerlink" href="#dining-room-4k" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>素材更新后补做</p></li>
+<li><p>深度：10；光线数：3300；分辨率：3840x2160；渲染时间：20h 左右</p></li>
+</ul>
+<img alt="_images/room4.jpg" src="_images/room4.jpg" />
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pre.html" class="btn btn-neutral float-left" title="数据结构" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright jintaos2.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

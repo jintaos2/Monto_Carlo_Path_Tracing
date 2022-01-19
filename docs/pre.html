@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>数据结构 &mdash; Monto_Carlo_Path_Tracing</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="一、概述" href="post.html" />
+    <link rel="prev" title="&lt;no title&gt;" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Monto_Carlo_Path_Tracing
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">数据结构</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#mtl">mtl 材质文件</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#obj">obj 文件</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">求交</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id3">重心坐标系求交</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id4">漫反射</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#aabbcc">AABBCC 求交</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">法向量坐标系转换</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id6">折射</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hdr-ldr">hdr 转 ldr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#skybox">skybox</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="post.html">一、概述</a></li>
+<li class="toctree-l1"><a class="reference internal" href="post.html#id2">二、使用方法</a></li>
+<li class="toctree-l1"><a class="reference internal" href="post.html#id3">三、程序细节</a></li>
+<li class="toctree-l1"><a class="reference internal" href="post.html#id8">四、场景展示</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Monto_Carlo_Path_Tracing</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>数据结构</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/pre.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="id1">
+<h1>数据结构<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h1>
+<section id="mtl">
+<h2>mtl 材质文件<a class="headerlink" href="#mtl" title="Permalink to this headline"></a></h2>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="c1"># 定义一个名为 &#39;xxx&#39;的材质</span>
+<span class="n">newmtl</span> <span class="n">xxx</span>
+<span class="c1"># 材质的环境光（ambient color）</span>
+<span class="n">Ka</span> <span class="mi">0</span> <span class="mi">0</span> <span class="mi">0</span>
+<span class="c1"># 散射光（diffuse color）用Kd</span>
+<span class="n">Kd</span> <span class="mf">0.784314</span> <span class="mf">0.784314</span> <span class="mf">0.784314</span>
+<span class="c1"># 镜面光（specular color）用Ks</span>
+<span class="n">Ks</span> <span class="mi">0</span> <span class="mi">0</span> <span class="mi">0</span>
+<span class="c1"># 折射值 可在0.001到10之间进行取值。若取值为1.0，光在通过物体的时候不发生弯曲。玻璃的折射率为1.5。</span>
+<span class="n">Ni</span> <span class="mi">1</span>
+<span class="c1"># 反射指数 定义了反射高光度。该值越高则高光越密集，一般取值范围在0~1000。</span>
+<span class="n">Ns</span> <span class="mi">400</span>
+<span class="c1"># 滤光透射率</span>
+<span class="n">Tf</span> <span class="mi">1</span> <span class="mi">1</span> <span class="mi">1</span>
+<span class="c1"># 渐隐指数描述 参数factor表示物体融入背景的数量，取值范围为0.0~1.0，取值为1.0表示完全不透明，取值为0.0时表示完全透明。</span>
+<span class="n">d</span> <span class="mi">1</span>
+<span class="c1"># 为漫反射指定颜色纹理文件</span>
+<span class="n">map_Kd</span> <span class="n">test_vt</span><span class="o">.</span><span class="n">bmp</span>
+</pre></div>
+</div>
+<p>newmtl：代表材质，以下皆为该材质的属性参数
+Ns：高光反射系数，值越高则高光越密集
+NI：指定材质表面的光密度，即折射值
+d：表示物体融入背景的数量，取值范围为0.0~1.0，取值为1.0表示完全不透明，取值为0.0时表示完全透明
+Tr：定义材质的alpha透明度
+Tf：材质的透射滤波（transmission filter），对应数据为r，g，b值
+illum： 照明度（illumination），后面可接0~10范围内的数字参数
+Ka: 环境光（ambient color）
+Kd: 散射光（diffuse color）
+Ks: 镜面光（specular color）
+Ke：放射光（emissive color）
+map_Ka：环境光所采样的纹理贴图路径，在.obj模型文件的根目录下
+map_Kd：漫反射光所采样的纹理贴图路径</p>
+</section>
+<section id="obj">
+<h2>obj 文件<a class="headerlink" href="#obj" title="Permalink to this headline"></a></h2>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="c1"># obj对应的材质文件</span>
+<span class="c1"># mtllib testvt.mtl</span>
+<span class="c1"># 组名称</span>
+<span class="n">g</span> <span class="n">default</span>
+<span class="c1"># o 对象名称(Object name)</span>
+<span class="n">o</span> <span class="n">testvt</span><span class="o">.</span><span class="n">obj</span>
+<span class="c1"># 顶点</span>
+<span class="n">v</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">-</span><span class="mf">0.5</span> <span class="mf">0.1</span>
+<span class="n">v</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">-</span><span class="mf">0.1</span>
+<span class="n">v</span> <span class="mi">0</span> <span class="mf">0.5</span> <span class="mf">0.1</span>
+<span class="n">v</span> <span class="mi">0</span> <span class="mf">0.5</span> <span class="o">-</span><span class="mf">0.1</span>
+<span class="n">v</span> <span class="mf">0.5</span> <span class="o">-</span><span class="mf">0.5</span> <span class="mf">0.1</span>
+<span class="n">v</span> <span class="mf">0.5</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">-</span><span class="mf">0.1</span>
+<span class="c1"># 纹理坐标</span>
+<span class="n">vt</span> <span class="mi">0</span> <span class="mi">1</span>
+<span class="n">vt</span> <span class="mi">1</span> <span class="mi">1</span>
+<span class="n">vt</span> <span class="mf">0.5</span> <span class="mi">0</span>
+<span class="c1"># 顶点法线</span>
+<span class="n">vn</span> <span class="mi">0</span> <span class="mi">0</span> <span class="mi">1</span>
+<span class="n">vn</span> <span class="mi">0</span> <span class="mi">0</span> <span class="o">-</span><span class="mi">1</span>
+<span class="c1"># 当前图元所用材质</span>
+<span class="n">usemtl</span> <span class="n">Default</span>
+<span class="c1"># s Smooth shading across polygons is enabled by smoothing groups.</span>
+<span class="c1"># Smooth shading can be disabled as well.</span>
+<span class="n">s</span> <span class="n">off</span>
+<span class="c1"># v1/vt1/vn1 v2/vt2/vn2 v3/vt3/vn3(索引起始于1)    </span>
+<span class="n">f</span> <span class="mi">1</span><span class="o">/</span><span class="mi">1</span><span class="o">/</span><span class="mi">1</span> <span class="mi">5</span><span class="o">/</span><span class="mi">2</span><span class="o">/</span><span class="mi">1</span> <span class="mi">3</span><span class="o">/</span><span class="mi">3</span><span class="o">/</span><span class="mi">1</span>
+<span class="n">f</span> <span class="mi">6</span><span class="o">/</span><span class="mi">2</span><span class="o">/</span><span class="mi">2</span> <span class="mi">2</span><span class="o">/</span><span class="mi">1</span><span class="o">/</span><span class="mi">2</span> <span class="mi">4</span><span class="o">/</span><span class="mi">3</span><span class="o">/</span><span class="mi">2</span>
+</pre></div>
+</div>
+</section>
+<section id="id2">
+<h2>求交<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h2>
+<div class="math notranslate nohighlight">
+\[\begin{split}
+p(t) = p_1 + tu \\ n \cdot (p-p_2) = 0 \\ n \cdot (p_1 - p_2 + tu) = 0 \\
+t (n \cdot u ) = n \cdot (p_2 - p_1) 
+\end{split}\]</div>
+</section>
+<section id="id3">
+<h2>重心坐标系求交<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h2>
+<p>光线: <span class="math notranslate nohighlight">\(p+td\)</span>
+三角: <span class="math notranslate nohighlight">\(p_0, p_1, p_2\)</span></p>
+<div class="math notranslate nohighlight">
+\[
+p + td = (1-u-v) p_0  + u p_1 + vp_2
+\]</div>
+<p><span class="math notranslate nohighlight">\(e_1 = p_1 - p_0\)</span>
+<span class="math notranslate nohighlight">\(e_2 = p_2 - p_0\)</span>
+<span class="math notranslate nohighlight">\(q = d \times e_2\)</span>
+<span class="math notranslate nohighlight">\(a = e_1 \cdot q\)</span> ,  if <span class="math notranslate nohighlight">\(a = 0\)</span> 平行
+<span class="math notranslate nohighlight">\(f = 1/a\)</span>
+<span class="math notranslate nohighlight">\(s = p - p_0\)</span>
+<span class="math notranslate nohighlight">\(u = f (s\cdot q)\)</span>
+<span class="math notranslate nohighlight">\(r = s \times e_1\)</span>
+<span class="math notranslate nohighlight">\(v = f (d\cdot r)\)</span>
+<span class="math notranslate nohighlight">\(t = f(e_2 \cdot r)\)</span></p>
+</section>
+<section id="id4">
+<h2>漫反射<a class="headerlink" href="#id4" title="Permalink to this headline"></a></h2>
+<p>半球面均匀分布随机向量:</p>
+<ul class="simple">
+<li><p>生成边长为 2 的立方体内随机点</p></li>
+<li><p>得到半径为 1 的球体内的随机点</p></li>
+<li><p>如果与入射光线不在同一侧，取反</p></li>
+</ul>
+</section>
+<section id="aabbcc">
+<h2>AABBCC 求交<a class="headerlink" href="#aabbcc" title="Permalink to this headline"></a></h2>
+<p>光线依次穿过三个区间，</p>
+<p><span class="math notranslate nohighlight">\(p.x + t.x * d.x = A.x\)</span></p>
+</section>
+<section id="id5">
+<h2>法向量坐标系转换<a class="headerlink" href="#id5" title="Permalink to this headline"></a></h2>
+<p>法向量坐标系: 法向量为 <span class="math notranslate nohighlight">\(z\)</span> 轴的球坐标系</p>
+<p>该球坐标系中某点 <span class="math notranslate nohighlight">\((\phi, \theta, 1)\)</span> 的笛卡尔坐标 <span class="math notranslate nohighlight">\((\sin\theta\cos\phi, \sin\theta\sin\phi,\cos\theta)\)</span></p>
+<p>原坐标系变换成法向量坐标系的其中一种转换：绕 <span class="math notranslate nohighlight">\(z\)</span> 轴旋转 <span class="math notranslate nohighlight">\(\phi_0\)</span>, 再绕新 <span class="math notranslate nohighlight">\(y\)</span> 轴旋转 <span class="math notranslate nohighlight">\(\theta_0\)</span> ，旋转矩阵 $<span class="math notranslate nohighlight">\(\begin{bmatrix}
+  \cos\theta_0\cos\phi_0 &amp; -\sin\phi_0 &amp; \sin\theta_0\cos\phi_0 \\
+  \cos\theta_0\sin\phi_0 &amp; \cos\phi_0 &amp; \sin\theta_0\sin\phi_0  \\
+  -\sin\theta_0  &amp; 0 &amp;  \cos\theta_0  
+\end{bmatrix}\)</span>$</p>
+<p>设法向量 <span class="math notranslate nohighlight">\((x, y, z)\)</span>, <span class="math notranslate nohighlight">\(\theta_0 = \arccos z\)</span>, <span class="math notranslate nohighlight">\(\phi_0 = \arctan \frac{y}{x}\)</span></p>
+<p>由
+$<span class="math notranslate nohighlight">\( \left \{
+\begin{array}{l}
+  x = \sin\theta_0\cos\phi_0 \\
+  y = \sin\theta_0\sin\phi_0 \\
+  z = \cos\theta_0 
+\end{array} \right .
+\)</span><span class="math notranslate nohighlight">\(
+得 
+\)</span><span class="math notranslate nohighlight">\(
+\left\{
+  \begin{array}{l}
+    \sin\theta_0 = \pm\sqrt{1-z^2} \\
+    \cos\phi_0 = x/ \sin\theta_0 \\
+    \sin\phi_0 = y / \sin\theta_0
+  \end{array}
+\right .
+\)</span>$</p>
+</section>
+<section id="id6">
+<h2>折射<a class="headerlink" href="#id6" title="Permalink to this headline"></a></h2>
+</section>
+<section id="hdr-ldr">
+<h2>hdr 转 ldr<a class="headerlink" href="#hdr-ldr" title="Permalink to this headline"></a></h2>
+<p>tone mapping</p>
+</section>
+<section id="skybox">
+<h2>skybox<a class="headerlink" href="#skybox" title="Permalink to this headline"></a></h2>
+<p>球面坐标</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="&lt;no title&gt;" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="post.html" class="btn btn-neutral float-right" title="一、概述" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright jintaos2.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
